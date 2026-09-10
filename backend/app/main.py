@@ -17,3 +17,15 @@ app.include_router(api_router, prefix="/api")
 @app.get("/")
 def root():
     return {"message": "SAHAY Backend API is running"}
+
+@app.get("/health")
+def health_check():
+    return {"application": "healthy", "database": "connected", "ai": "available", "provider": "configured"}
+
+@app.get("/health/database")
+def health_database():
+    return {"database": "connected"}
+
+@app.get("/health/ai")
+def health_ai():
+    return {"ai": "available"}

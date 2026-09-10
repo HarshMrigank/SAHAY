@@ -1,6 +1,6 @@
 fastapi
 uvicorn
-pydantic
+pydantic[email]
 sqlalchemy
 alembic
 python-dotenv
@@ -10,3 +10,9 @@ pytest
 httpx
 python-multipart
 cors
+psycopg2-binary
+passlib[bcrypt]
+bcrypt==3.2.2
+python-jose[cryptography]
+pydantic-settings
+email-validator

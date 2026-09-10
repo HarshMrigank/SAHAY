@@ -1,43 +1,47 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from typing import List
+from app.api import deps
+from app.models.domain import Case, User, RoleEnum
 from pydantic import BaseModel
-from typing import List, Optional
 import datetime
 
 router = APIRouter()
 
-# Mock data
-MOCK_CASES = [
-    {
-        "id": "CASE-1042",
-        "victimId": "VIC-001",
-        "district": "North District",
-        "status": "Active",
-        "risk": "HIGH",
-        "trend": "Increasing",
-        "lastCheckIn": "2026-09-07T10:00:00Z",
-        "assignedOfficer": "Counsellor A",
-        "distressScore": 74
-    },
-    {
-        "id": "CASE-1078",
-        "victimId": "VIC-002",
-        "district": "South District",
-        "status": "Active",
-        "risk": "MODERATE",
-        "trend": "Stable",
-        "lastCheckIn": "2026-09-06T14:30:00Z",
-        "assignedOfficer": "Counsellor B",
-        "distressScore": 45
-    }
-]
+class CaseResponse(BaseModel):
+    id: int
+    title: str
+    description: str
+    status: str
+    victim_id: int
+    assigned_to: int | None
+    created_at: datetime.datetime
 
-@router.get("/")
-def get_cases():
-    return MOCK_CASES
+    class Config:
+        from_attributes = True
 
-@router.get("/{case_id}")
-def get_case(case_id: str):
-    for case in MOCK_CASES:
-        if case["id"] == case_id:
-            return case
-    return {"error": "Case not found"}
+@router.get("/", response_model=List[CaseResponse])
+def get_cases(
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user)
+):
+    # Only Admin, NGO can see all cases. Responders and Therapists see only assigned ones.
+    if current_user.role in [RoleEnum.ADMIN.value, RoleEnum.NGO.value]:
+        return db.query(Case).all()
+    else:
+        return db.query(Case).filter(Case.assigned_to == current_user.id).all()
+
+@router.get("/{case_id}", response_model=CaseResponse)
+def get_case(
+    case_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user)
+):
+    case = db.query(Case).filter(Case.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+        
+    if current_user.role not in [RoleEnum.ADMIN.value, RoleEnum.NGO.value] and case.assigned_to != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to view this case")
+        
+    return case

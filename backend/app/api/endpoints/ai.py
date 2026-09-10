@@ -60,3 +60,26 @@ def predict_risk(request: PredictionRequest):
         "thirtyDayRisk": "MODERATE_HIGH",
         "explanations": ["Increased fear-related responses", "Sleep difficulties reported"]
     }
+
+class AITestRequest(BaseModel):
+    provider: str = "mock" # "mock", "openai", "gemini"
+    prompt: str
+    require_structured: bool = False
+
+class AITestStructuredOutput(BaseModel):
+    sentiment: str
+    key_topics: List[str]
+    risk_level: int
+
+@router.post("/test")
+def test_ai_provider(request: AITestRequest):
+    from app.ai.providers import get_ai_provider
+    provider = get_ai_provider(request.provider)
+    
+    if request.require_structured:
+        result = provider.generate_structured_output(request.prompt, AITestStructuredOutput)
+        return {"type": "structured", "data": result.model_dump()}
+    else:
+        result = provider.generate_response(request.prompt)
+        return {"type": "text", "data": result}
+

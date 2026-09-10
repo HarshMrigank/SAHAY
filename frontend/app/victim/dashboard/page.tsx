@@ -1,13 +1,38 @@
 "use client";
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Calendar, PhoneCall, ShieldAlert, ArrowRight, Activity } from 'lucide-react';
 
 export default function VictimDashboard() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/victim/dashboard`, {
+          // You would typically pass authorization headers here
+        });
+        if (res.ok) {
+          const json = await res.json();
+          setData(json);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) return <div className="p-8 max-w-4xl mx-auto">Loading dashboard...</div>;
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <h1 className="text-2xl font-bold text-slate-800">Good morning</h1>
+        <h1 className="text-2xl font-bold text-slate-800">Good morning{data?.name ? `, ${data.name}` : ''}</h1>
         <p className="text-slate-600 mt-1">Your wellbeing matters.</p>
       </div>
 
@@ -19,7 +44,7 @@ export default function VictimDashboard() {
               <Calendar className="h-6 w-6 mr-2" />
               <h2 className="text-lg font-semibold">Next Check-in</h2>
             </div>
-            <p className="text-slate-700">Scheduled for <span className="font-semibold text-slate-900">Today</span></p>
+            <p className="text-slate-700">Scheduled for <span className="font-semibold text-slate-900">{data?.nextCheckIn || 'Today'}</span></p>
             <p className="text-sm text-slate-500 mt-1">Estimated duration: 2–3 minutes</p>
           </div>
           <div className="mt-6">
@@ -58,11 +83,16 @@ export default function VictimDashboard() {
         </div>
         
         <div className="h-32 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-center p-4">
-           {/* Simple mock trend indicator */}
-           <p className="text-slate-600 text-center">
-             Your recent responses suggest that additional support may be helpful. <br/>
-             <Link href="/victim/support" className="text-blue-600 font-medium hover:underline mt-2 inline-block">View Support Services</Link>
-           </p>
+           {data?.recentStatus === 'needs_support' ? (
+             <p className="text-slate-600 text-center">
+               Your recent responses suggest that additional support may be helpful. <br/>
+               <Link href="/victim/support" className="text-blue-600 font-medium hover:underline mt-2 inline-block">View Support Services</Link>
+             </p>
+           ) : (
+             <p className="text-slate-600 text-center">
+               You are on track with your check-ins. Keep it up!
+             </p>
+           )}
         </div>
       </div>
 
