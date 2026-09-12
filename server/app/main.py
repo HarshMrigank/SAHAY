@@ -42,7 +42,7 @@ from .profiles import visible_victims, victim_profile, counsellor_profiles
 app = FastAPI(title="Sahay API", version="0.2.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[url.strip() for url in settings.frontend_urls.split(",") if url.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

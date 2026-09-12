@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     grok_model: str = "grok-3-mini"
     grok_base_url: str = "https://api.x.ai/v1/chat/completions"
     grok_timeout_seconds: float = 20.0
+    frontend_urls: str = "http://localhost:5173"
     distress_terms_json: str = "{}"
     distress_monitor_threshold: int = 25
     distress_high_threshold: int = 60
