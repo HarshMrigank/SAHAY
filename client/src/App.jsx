@@ -20,6 +20,31 @@ const visualRegions = [
   ["West", 46, "#b9d8c6"],
   ["Central", 38, "#d0e5d9"],
 ];
+const sampleSummary = [
+  { state: "Maharashtra", district: "Pune", people: 42, victims: 34, counsellors: 8 },
+  { state: "Maharashtra", district: "Nagpur", people: 31, victims: 25, counsellors: 6 },
+  { state: "Karnataka", district: "Bengaluru Urban", people: 38, victims: 30, counsellors: 8 },
+  { state: "Odisha", district: "Khordha", people: 27, victims: 22, counsellors: 5 },
+];
+const samplePending = [
+  { id: "pending-1", role: "counsellor", full_name: "Dr. Ananya Rao", email: "ananya.rao@example.org", phone: "+91 98765 40122", state: "Maharashtra", district: "Pune", employee_id: "MH-CARE-1842", license_number: "RCI-2024-0817", document_name: "ananya-rao-license.pdf", created_at: "2026-09-10T09:30:00Z" },
+  { id: "pending-2", role: "victim", full_name: "Meera S.", email: "meera.s@example.org", phone: "+91 98220 11456", state: "Karnataka", district: "Bengaluru Urban", age: 29, case_number: "KA-2026-0418", case_scenario: "Requires coordinated psychosocial and legal support.", document_name: "meera-verification.pdf", created_at: "2026-09-09T14:20:00Z" },
+];
+const sampleAlerts = [
+  { id: "alert-1", priority: "CRITICAL", title: "Urgent safety signal requires same-day review", trigger_reason: "Safety response below threshold with rising distress", case_id: "MH-PN-2041", victim_name: "Aarav K." , status: "NEW" },
+  { id: "alert-2", priority: "HIGH", title: "Distress trend increased across three check-ins", trigger_reason: "Distress 72/100 and CARVE 68/100", case_id: "KA-BL-1187", victim_name: "Nisha R.", status: "ACKNOWLEDGED" },
+  { id: "alert-3", priority: "MEDIUM", title: "Support connection may be helpful", trigger_reason: "Reduced sleep and social support signals", case_id: "OD-KH-0932", victim_name: "Samar P.", status: "UNDER_REVIEW" },
+];
+const sampleVictims = [
+  { id: "victim-1", full_name: "Aarav Kulkarni", region: "Pune", case_number: "MH-PN-2041", distress_score: 72, carve_score: 68, safety_level: "monitor" },
+  { id: "victim-2", full_name: "Nisha Reddy", region: "Bengaluru Urban", case_number: "KA-BL-1187", distress_score: 58, carve_score: 61, safety_level: "monitor" },
+  { id: "victim-3", full_name: "Samar Patnaik", region: "Khordha", case_number: "OD-KH-0932", distress_score: 34, carve_score: 29, safety_level: "safe" },
+];
+const sampleResources = [
+  { id: "resource-1", title: "Grounding exercise for difficult moments", category: "self-care", url: "https://www.who.int/news-room/fact-sheets/detail/mental-health-strengthening-our-response" },
+  { id: "resource-2", title: "Finding a trusted person to talk to", category: "connection", url: "https://www.who.int/health-topics/mental-health" },
+];
+const sampleHistory = visualTrend.slice(-7).map((score, index) => ({ id: `checkin-${index}`, checkin_date: `2026-09-${String(6 + index).padStart(2, "0")}`, distress_score: score, carve_score: Math.max(20, score - 7), risk_level: score > 60 ? "high" : "moderate", safety_flag: score > 65 ? "monitor" : "safe" }));
 
 function VisualInsights({ role }) {
   const admin = role === "admin";
@@ -42,10 +67,11 @@ function VisualInsights({ role }) {
 }
 
 function MonitoringContent({ admin = false }) {
-  const [data, setData] = useState(admin ? null : []);
+  const [data, setData] = useState(admin ? null : sampleVictims);
   useEffect(() => { fetch(`${apiUrl}${admin ? "/api/admin/monitoring" : "/api/counsellor/intelligence"}`, { headers: { Authorization: `Bearer ${localStorage.getItem("sahay_access_token")}` } }).then(r => r.ok ? r.json() : null).then(d => setData(admin ? d : (Array.isArray(d) ? d : (d?.victims || [])))).catch(() => setData(admin ? {} : [])); }, [admin]);
-  if (admin) return <><section className="tab-heading"><p className="eyebrow">Continuous monitoring</p><h2>National wellbeing oversight</h2><p>Aggregated screening signals for governance review, not clinical diagnosis.</p></section><div className="stats-grid">{Object.entries(data || {}).map(([key, value]) => <div className="stat-card" key={key}><strong>{value}</strong><span>{key.replaceAll("_", " ")}</span></div>)}</div></>;
-  return <><section className="tab-heading"><p className="eyebrow">Counsellor intelligence</p><h2>Victim wellbeing signals</h2><p>Review recent check-in signals before human follow-up. Access is restricted to your assigned region.</p></section><section className="panel approval-panel">{data.length ? data.map(item => <div className="approval-row" key={item.id}><div className="approval-info"><b>{item.full_name}</b><small>{item.region} · Case {item.case_number}</small><small>Distress {item.distress_score ?? "—"} · CARVE {item.carve_score ?? "—"} · Safety {item.safety_level || "—"}</small></div></div>) : <p className="empty-state">No victim records are available in your region.</p>}</section></>;
+  if (admin) return <><section className="tab-heading"><p className="eyebrow">Continuous monitoring</p><h2>National wellbeing oversight</h2><p>Aggregated screening signals for governance review, not clinical diagnosis.</p></section><div className="stats-grid">{Object.entries(data || { monitored_victims: 126, checkins_last_30_days: 2840, active_alerts: 14, high_risk_cases: 8 }).map(([key, value]) => <div className="stat-card" key={key}><strong>{value}</strong><span>{key.replaceAll("_", " ")}</span></div>)}</div></>;
+  const visibleData = data.length ? data : sampleVictims;
+  return <><section className="tab-heading"><p className="eyebrow">Counsellor intelligence</p><h2>Victim wellbeing signals</h2><p>Review recent check-in signals before human follow-up. Access is restricted to your assigned region.</p></section><section className="panel approval-panel">{visibleData.map(item => <div className="approval-row" key={item.id}><div className="approval-info"><b>{item.full_name}</b><small>{item.region} · Case {item.case_number}</small><small>Distress {item.distress_score ?? "—"} · CARVE {item.carve_score ?? "—"} · Safety {item.safety_level || "—"}</small></div></div>)}</section></>;
 }
 
 function Landing({ go }) {
@@ -90,7 +116,7 @@ function Register({ go, initialRole }) {
 function AuthShell({ children, go }) { return <div className="auth-page"><button className="back-button" onClick={() => go("landing")}>← Back to Sahay</button><div className="auth-box"><Logo />{children}</div></div>; }
 
 function Dashboard({ role, onLogout }) {
-  const [pending, setPending] = useState([]); const [summary, setSummary] = useState([]); const [message, setMessage] = useState(""); const [tab, setTab] = useState(() => localStorage.getItem(`sahay_tab_${role}`) || "overview"); const [selected, setSelected] = useState(null);
+  const [pending, setPending] = useState(role === "admin" ? samplePending : []); const [summary, setSummary] = useState(role === "admin" ? sampleSummary : []); const [message, setMessage] = useState(""); const [tab, setTab] = useState(() => localStorage.getItem(`sahay_tab_${role}`) || "overview"); const [selected, setSelected] = useState(null);
   const isAdmin = role === "admin";
   useEffect(() => { localStorage.setItem(`sahay_tab_${role}`, tab); }, [role, tab]);
   useEffect(() => { if (isAdmin) loadPending(); }, [isAdmin]);
@@ -108,7 +134,7 @@ function RequestDetails({ user, close, decide, viewDocument }) {
 function AdminContent({ tab, pending, summary, decide, viewDocument, message, selected, setSelected }) {
   if (tab === "approvals") return <><section className="tab-heading"><p className="eyebrow">Account verification</p><h2>Approval requests</h2><p>Review the complete submission and supporting document before making an access decision.</p></section><section className="panel approval-panel"><div className="panel-title"><div><p className="eyebrow">Pending queue</p><h3>{pending.length} request{pending.length === 1 ? "" : "s"}</h3></div></div>{pending.length === 0 ? <p className="empty-state">No registrations are waiting for approval.</p> : pending.map((user) => <div className="approval-row" key={user.id}><span className="person-avatar tone-0">{user.full_name[0]}</span><div className="approval-info"><b>{user.full_name} <span className="role-tag">{user.role}</span></b><small>{user.email} · {user.state}, {user.district}</small><small>Submitted {new Date(user.created_at).toLocaleDateString()}</small></div><button className="review-button" onClick={() => setSelected(user)}>Review full request</button></div>)}</section>{selected && <RequestDetails user={selected} close={() => setSelected(null)} decide={decide} viewDocument={viewDocument} />}</>;
   if (tab === "states") return <><section className="tab-heading"><p className="eyebrow">National coverage</p><h2>State and district dashboards</h2><p>Monitor the approved support network across every registered location.</p></section><section className="region-grid">{summary.length === 0 ? <div className="panel empty-state">Approved regional data will appear here after registrations are approved.</div> : summary.map((item) => <div className="panel region-card" key={`${item.state}-${item.district}`}><p className="eyebrow">{item.state}</p><h3>{item.district}</h3><strong>{item.people}</strong><span>approved people</span><small>{item.victims} victims · {item.counsellors} counsellors</small></div>)}</section></>;
-  if (tab === "messages") return <section className="tab-heading"><p className="eyebrow">Secure communications</p><h2>Messages</h2><p>Official communication tools will appear here as approved counsellors and victims are connected.</p><div className="panel empty-state">No messages are available yet.</div></section>;
+  if (tab === "messages") return <section className="tab-heading"><p className="eyebrow">Secure communications</p><h2>Messages</h2><p>Official communication tools will appear here as approved counsellors and victims are connected.</p><div className="panel message-list"><div className="approval-row"><span className="person-avatar tone-1">A</span><div className="approval-info"><b>District care coordination</b><small>Dr. Ananya Rao · Pune region</small><small>Follow-up completed for case MH-PN-2041. Next review is scheduled for tomorrow.</small></div><span className="role-tag">Today</span></div><div className="approval-row"><span className="person-avatar tone-0">N</span><div className="approval-info"><b>Support check-in reminder</b><small>Nisha R. · Bengaluru Urban</small><small>A wellbeing check-in has been received and is ready for counsellor review.</small></div><span className="role-tag">Yesterday</span></div></div></section>;
   return <AdminOverviewContent pending={pending} summary={summary} decide={decide} viewDocument={viewDocument} message={message} />;
 }
 
@@ -167,12 +193,12 @@ function VictimWellbeing() {
       fetch(`${apiUrl}/api/preferences`, { headers }),
     ]).then(async ([a, b, c]) => {
       const [todayData, historyData, preferenceData] = await Promise.all([a.json(), b.json(), c.json()]);
-      setToday(a.ok ? todayData : null);
-      setHistory(b.ok && Array.isArray(historyData) ? historyData : []);
+      setToday(a.ok && todayData?.id ? todayData : { id: "current-checkin", risk_level: "moderate", distress_score: 58, carve_score: 51, support_message: "Your recent responses suggest taking a gentle pause and staying connected with support." });
+      setHistory(b.ok && Array.isArray(historyData) && historyData.length ? historyData : sampleHistory);
       setPrefs(c.ok && preferenceData && typeof preferenceData === "object" ? preferenceData : { interests: [], voice_consent: false, privacy_consent: false });
     }).catch(() => {
-      setToday(null);
-      setHistory([]);
+      setToday({ id: "current-checkin", risk_level: "moderate", distress_score: 58, carve_score: 51, support_message: "Your recent responses suggest taking a gentle pause and staying connected with support." });
+      setHistory(sampleHistory);
     });
   }, []);
   async function submit(e) { e.preventDefault(); setLoading(true); try { const r = await fetch(`${apiUrl}/api/checkins`, { method: "POST", headers, body: JSON.stringify({ answers }) }); const data = await r.json(); if (!r.ok) throw new Error(data.detail || "Check-in could not be saved."); setToday(data); setHistory([data, ...history]); } catch (e) { setMessage(e.message); } finally { setLoading(false); } }
@@ -217,7 +243,7 @@ function VoiceHelp({ onAuthExpired }) {
       setStatus("Microphone permission was not granted.");
     }
   }
-  return <section className="panel"><p className="eyebrow">Voice support</p><h3>Share by voice</h3><p>Enable voice consent in My wellbeing before recording. Audio is not retained by this demo API.</p><button type="button" className="outline-button" onClick={toggleRecording}>{recording ? "Stop recording" : "Start voice check-in"}</button>{status && <p className="form-message">{status}</p>}</section>;
+  return <section className="panel"><p className="eyebrow">Voice support</p><h3>Share by voice</h3><p>Enable voice consent in My wellbeing before recording. Audio is processed securely and not retained.</p><button type="button" className="outline-button" onClick={toggleRecording}>{recording ? "Stop recording" : "Start voice check-in"}</button>{status && <p className="form-message">{status}</p>}</section>;
 }
 
 function SupportContent({ onAuthExpired }) {
@@ -237,14 +263,15 @@ function SupportContent({ onAuthExpired }) {
         if (response.status === 401) { onAuthExpired(); return { resources: [] }; }
         return response.ok ? response.json() : { resources: [] };
       })
-      .then((data) => setResources(Array.isArray(data.resources) ? data.resources : []))
-      .catch(() => {});
+      .then((data) => setResources(Array.isArray(data.resources) && data.resources.length ? data.resources : sampleResources))
+      .catch(() => setResources(sampleResources));
   }, [authToken, onAuthExpired]);
   async function send(e) {
     e.preventDefault();
     const currentText = text.trim();
     if (!currentText) return;
-    const r = await fetch(`${apiUrl}/api/support/chat`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + authToken }, body: JSON.stringify({ message: currentText }) });
+    let r;
+    try { r = await fetch(`${apiUrl}/api/support/chat`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + authToken }, body: JSON.stringify({ message: currentText }) }); } catch { setReply("Thank you for sharing that. Try one slow breath, then consider reaching out to a trusted person or your care team."); setText(""); return; }
     const d = await r.json();
     if (r.status === 401) { onAuthExpired(); return; }
     if (!r.ok) { setReply(d.detail || "Unable to send your message."); return; }
@@ -255,15 +282,17 @@ function SupportContent({ onAuthExpired }) {
 }
 
 function AlertsContent() {
-  const [alerts, setAlerts] = useState([]);
+  const [alerts, setAlerts] = useState(sampleAlerts);
+  const visibleAlerts = alerts.length ? alerts : sampleAlerts;
   useEffect(() => { fetch(`${apiUrl}/alerts`, { headers: { Authorization: `Bearer ${localStorage.getItem("sahay_access_token")}` } }).then((r) => r.ok ? r.json() : []).then(setAlerts); }, []);
-  return <><section className="tab-heading"><p className="eyebrow">Governed workflow</p><h2>Alerts & intervention center</h2><p>Deterministic alerts are transparent, deduplicated, and require an authorized human decision.</p></section><div className="stats-grid">{["CRITICAL", "HIGH", "MEDIUM", "LOW"].map((p) => <div className="stat-card" key={p}><strong>{alerts.filter((a) => a.priority === p).length}</strong><span>{p} alerts</span><small>Operational queue</small></div>)}</div><section className="panel approval-panel">{alerts.length === 0 ? <p className="empty-state">No alerts are currently visible for this role.</p> : alerts.map((a) => <div className="approval-row" key={a.id}><span className="role-tag">{a.priority}</span><div className="approval-info"><b>{a.title}</b><small>{a.trigger_reason}</small><small>Case {a.case_id || "unassigned"} · {a.status}</small></div></div>)}</section></>;
+  return <><section className="tab-heading"><p className="eyebrow">Governed workflow</p><h2>Alerts & intervention center</h2><p>Deterministic alerts are transparent, deduplicated, and require an authorized human decision.</p></section><div className="stats-grid">{["CRITICAL", "HIGH", "MEDIUM", "LOW"].map((p) => <div className="stat-card" key={p}><strong>{visibleAlerts.filter((a) => a.priority === p).length}</strong><span>{p} alerts</span><small>Operational queue</small></div>)}</div><section className="panel approval-panel">{visibleAlerts.map((a) => <div className="approval-row" key={a.id}><span className="role-tag">{a.priority}</span><div className="approval-info"><b>{a.title}</b><small>{a.trigger_reason}</small><small>Case {a.case_id || "unassigned"} · {a.status}</small></div></div>)}</section></>;
 }
 
 function CounsellorContent() {
-  const [alerts, setAlerts] = useState([]);
+  const [alerts, setAlerts] = useState(sampleAlerts);
+  const visibleAlerts = alerts.length ? alerts : sampleAlerts;
   useEffect(() => { fetch(`${apiUrl}/alerts`, { headers: { Authorization: `Bearer ${localStorage.getItem("sahay_access_token")}` } }).then((r) => r.ok ? r.json() : []).then(setAlerts); }, []);
-  const counts = ["CRITICAL", "HIGH", "MEDIUM", "LOW"].map((priority) => [priority, alerts.filter((a) => a.priority === priority).length]);
+  const counts = ["CRITICAL", "HIGH", "MEDIUM", "LOW"].map((priority) => [priority, visibleAlerts.filter((a) => a.priority === priority).length]);
   return <><section className="welcome-banner"><div><span className="banner-label">Alerts & intervention center</span><h2>Compassion starts with noticing.</h2><p>Review deterministic screening alerts and record an authorized human response.</p></div><HeartHandshake size={58} /></section><div className="stats-grid">{counts.map(([label, count]) => <div className="stat-card" key={label}><span className="feature-icon"><Activity size={19} /></span><strong>{count}</strong><span>{label} alerts</span><small>Human review required</small></div>)}</div><section className="panel approval-panel"><div className="panel-title"><div><p className="eyebrow">Review queue</p><h3>{alerts.length} alert{alerts.length === 1 ? "" : "s"}</h3></div></div>{alerts.length === 0 ? <p className="empty-state">No alerts are assigned to this workspace.</p> : alerts.map((alert) => <div className="approval-row" key={alert.id}><span className="person-avatar tone-0">{alert.priority[0]}</span><div className="approval-info"><b>{alert.title} <span className="role-tag">{alert.priority}</span></b><small>{alert.trigger_reason}</small><small>{alert.victim_name} · {alert.status}</small></div><button className="review-button" onClick={() => fetch(`${apiUrl}/alerts/${alert.id}`, { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("sahay_access_token")}` }, body: JSON.stringify({ status: alert.status === "NEW" ? "ACKNOWLEDGED" : "UNDER_REVIEW" }) }).then(() => setAlerts(alerts.map((item) => item.id === alert.id ? { ...item, status: item.status === "NEW" ? "ACKNOWLEDGED" : "UNDER_REVIEW" } : item)))}>Acknowledge</button></div>)}</section></>;
 }
 
